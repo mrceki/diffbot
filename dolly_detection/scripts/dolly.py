@@ -68,13 +68,13 @@ def cluster_points(points, eps, min_samples):
 def scan_callback(scan_data):
     cartesian_points = cartesian_conversion(scan_data)
 
-    # Clustering parameters
-    eps = 0.1  # Distance
-    min_samples = 1  # Minimum samples
+    # Nokta kümeleme parametreleri
+    eps = 0.1  # Yakınlık mesafesi
+    min_samples = 1  # Minimum örnekleme sayısı
 
     clusters = cluster_points(cartesian_points, eps, min_samples)
 
-    # Finding Clusters
+    # En yakın, ikinci en yakın ve en uzak küme
     nearest_cluster = None
     second_nearest_cluster = None
     farthest_cluster = None
@@ -109,47 +109,68 @@ def scan_callback(scan_data):
             max_distance = distance
 
     if nearest_cluster is not None and second_nearest_cluster is not None and farthest_cluster is not None:
-        # Get cluster center points
+        # Küme merkez noktalarını al
         x1, y1 = nearest_cluster.get_center_point().x, nearest_cluster.get_center_point().y
         x2, y2 = second_nearest_cluster.get_center_point().x, second_nearest_cluster.get_center_point().y
         x3, y3 = farthest_cluster.get_center_point().x, farthest_cluster.get_center_point().y
 
-        # Center of the rectangle
+        # Dikdörtgenin merkezi
         cx = (x1 + x3) / 2
         cy = (y1 + y3) / 2
 
-        # Dimensions of the rectangle
+        # Dikdörtgenin boyutları
         w = math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
         h = math.sqrt((x3 - x2) ** 2 + (y3 - y2) ** 2)
 
-        # Corners of the rectangle
+        # Dikdörtgenin köşeleri
         x = cx - w / 2
         y = cy - h / 2
 
-        # Dolly's rotation
+        # Dolly'nin rotasyonu
         yaw = math.atan2(y2 - y1, x2 - x1)
 
-        # TF
-        transform = TransformStamped()
-        transform.header.stamp = rospy.Time.now()
-        transform.header.frame_id = "base_link"
-        transform.child_frame_id = "dolly"
-        transform.transform.translation.x = -1 * dolly_center.x
-        transform.transform.translation.y = -1 * dolly_center.y
-        transform.transform.translation.z = 0.0
-        quaternion = tf.transformations.quaternion_from_euler(0, 0, yaw)
-        transform.transform.rotation.x = quaternion[0]
-        transform.transform.rotation.y = quaternion[1]
-        transform.transform.rotation.z = quaternion[2]
-        transform.transform.rotation.w = quaternion[3]
-
-        # Publish TF
+        # TF için dönüşüm oluştur
         tf_broadcaster = tf2_ros.TransformBroadcaster()
-        tf_broadcaster.sendTransform(transform)
 
-        # Print pose
-        rospy.loginfo("Dolly Center: (%f, %f)", cx, cy)
+        # Dolly TF
+        dolly_transform = TransformStamped()
+        dolly_transform.header.stamp = rospy.Time.now()
+        dolly_transform.header.frame_id = "base_link"
+        dolly_transform.child_frame_id = "dolly"
+        dolly_transform.transform.translation.x = -1 * dolly_center.x
+        dolly_transform.transform.translation.y = -1 * dolly_center.y
+        dolly_transform.transform.translation.z = 0.0
+        quaternion = tf.transformations.quaternion_from_euler(0, 0, yaw)
+        dolly_transform.transform.rotation.x = quaternion[0]
+        dolly_transform.transform.rotation.y = quaternion[1]
+        dolly_transform.transform.rotation.z = quaternion[2]
+        dolly_transform.transform.rotation.w = quaternion[3]
+        tf_broadcaster.sendTransform(dolly_transform)
+
+        # Küme TF'leri
+        cluster_transforms = []
+        for i, cluster in enumerate(clusters):
+            cluster_center = cluster.get_center_point()
+            cluster_transform = TransformStamped()
+            cluster_transform.header.stamp = rospy.Time.now()
+            cluster_transform.header.frame_id = "base_link"
+            cluster_transform.child_frame_id = f"cluster_{i}"
+            cluster_transform.transform.translation.x = -1 * cluster_center.x
+            cluster_transform.transform.translation.y = -1 * cluster_center.y
+            cluster_transform.transform.translation.z = 0.0
+            cluster_transform.transform.rotation.x = 0.0
+            cluster_transform.transform.rotation.y = 0.0
+            cluster_transform.transform.rotation.z = 0.0
+            cluster_transform.transform.rotation.w = 1.0
+            cluster_transforms.append(cluster_transform)
+
+        # Tüm TF'leri yayınla
+        tf_broadcaster.sendTransform(cluster_transforms)
+
+        # Pozisyonu yazdır
+        rospy.loginfo("Dolly Merkezi: (%f, %f)", cx, cy)
         rospy.loginfo("Dolly Yaw: %f", yaw)
+
 
 def main():
     rospy.init_node('dolly_point_filtering_node')
