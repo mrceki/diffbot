@@ -10,7 +10,7 @@
   <arg name="rvizconfig" default="$(find diffbot_navigation)/rviz/diffbot_navigation.rviz" />
   <arg name="move_forward_only" default="false"/>
   <arg name="local_planner" default="dwa" doc="Local planner can be either dwa, base, teb or pose"/>
-  <arg name="world_name" default="$(find diffbot_gazebo)/worlds/db_world.world"/>
+  <arg name="world_name" default="$(find diffbot_gazebo)/worlds/diffbot_empty.world"/>
 
   <!-- DiffBot Remote Steering TODO -->
   <!--include file="$(find diffbot_bringup)/launch/diffbot_remote.launch">
@@ -24,12 +24,12 @@
 
 
   <!-- Map server -->
-  <node pkg="map_server" name="map_server" type="map_server" args="$(arg map_file)"/>
+  <!-- <node pkg="map_server" name="map_server" type="map_server" args="$(arg map_file)"/> -->
 
   <!-- AMCL -->
-  <include file="$(find diffbot_navigation)/launch/amcl.launch">
+  <!--include file="$(find diffbot_navigation)/launch/amcl.launch">
     <arg name="model" value="$(arg model)" />
-  </include>
+  </include-->
 
   <!-- move_base -->
   <include file="$(find diffbot_navigation)/launch/move_base.launch">

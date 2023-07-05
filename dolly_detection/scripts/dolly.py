@@ -72,7 +72,6 @@ def scan_callback(scan_data):
     eps = 0.1  # Distance
     min_samples = 1  # Minimum samples
 
-    # Nokta kümeleme işlemi
     clusters = cluster_points(cartesian_points, eps, min_samples)
 
     # Finding Clusters
